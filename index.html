@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Ports SavQonnect — Règles ACL pour IT | UQAM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-hover: #243044;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --success: #3fb950;
+      --warning: #d29922;
+      --critical: #f85149;
+      --border: #30363d;
+      --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .meta {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .meta span { margin-right: 1.5rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-in { background: rgba(88, 166, 255, 0.2); color: var(--accent); }
+    .badge-out { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+    .badge-critical { background: rgba(248, 81, 73, 0.2); color: var(--critical); }
+    nav.tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    nav.tabs a {
+      padding: 0.6rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    nav.tabs a:hover { background: var(--surface-hover); }
+    nav.tabs a.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    section { margin-bottom: 3rem; }
+    section h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    section h3 { font-size: 1rem; margin: 1.5rem 0 0.75rem; color: var(--text-muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+    }
+    tr:hover { background: var(--surface-hover); }
+    .port { font-family: var(--font-mono); font-weight: 500; color: var(--accent); }
+    .dir-in { color: var(--accent); }
+    .dir-out { color: var(--success); }
+    .copy-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .copy-btn:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .copy-btn.copied { background: var(--success); color: var(--bg); border-color: var(--success); }
+    .acl-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 0.5rem;
+    }
+    .acl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .priority-critical { border-left: 3px solid var(--critical); }
+    .priority-high { border-left: 3px solid var(--warning); }
+    .priority-normal { border-left: 3px solid var(--accent); }
+    .alert { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    .alert-info { background: rgba(88, 166, 255, 0.15); border: 1px solid var(--accent); }
+    .alert-warn { background: rgba(210, 153, 34, 0.15); border: 1px solid var(--warning); }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    @media print {
+      body { background: #fff; color: #111; }
+      :root { --bg: #fff; --surface: #f5f5f5; --text: #111; --text-muted: #555; --border: #ccc; }
+      nav.tabs { display: none; }
+      .copy-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Audit des ports et relations réseau — SavQonnect</h1>
+      <p class="meta">
+        <span>Version 1.1</span>
+        <span>2026-03-17</span>
+        <span>UQAM Service Audiovisuel</span>
+        <span>Référence : <a href="https://zine76.github.io/Documentation_technique_SAVQonnect/" style="color:var(--accent)" target="_blank" rel="noopener">Documentation technique</a></span>
+      </p>
+      <p style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">
+        Document destiné aux équipes TI pour l'application des règles ACL (firewall). Source : <code style="font-size:0.85rem">docs/AUDIT_PORTS_RELATIONS_SAVQONNECT.md</code>
+      </p>
+    </header>
+
+    <nav class="tabs">
+      <a href="#acl">Règles ACL</a>
+      <a href="#inbound">Ports entrants</a>
+      <a href="#outbound">Ports sortants</a>
+      <a href="#cloud">Services cloud</a>
+      <a href="#infra">Infra interne</a>
+    </nav>
+
+    <section id="acl">
+      <h2>Règles firewall — Copier pour ACL</h2>
+      <p class="alert alert-info">Remplacer <code>VM_IP</code> par l'adresse IP de la VM SavQonnect. Ces règles sont prêtes à être intégrées dans la configuration firewall.</p>
+
+      <h3>Entrant (Inbound) — Accès à SavQonnect</h3>
+      <div class="acl-header">
+        <span>Ports à autoriser vers la VM</span>
+        <button class="copy-btn" onclick="copyAcl('acl-in')">Copier</button>
+      </div>
+      <pre id="acl-in" class="acl-block priority-critical"># SavQonnect - Règles ENTRANTES (INBOUND)
+# Autoriser depuis réseaux UQAM / VPN
+
+# API Backend (Production) - CRITIQUE
+ALLOW TCP ANY → VM_IP:7070
+
+# API Backend (Staging)
+ALLOW TCP DEV_NETWORK → VM_IP:7071
+
+# Frontend Nginx (si exposé)
+ALLOW TCP ANY → VM_IP:80
+ALLOW TCP ANY → VM_IP:443
+
+# Monitoring (admins uniquement)
+ALLOW TCP ADMIN_VLAN → VM_IP:3000   # Grafana
+ALLOW TCP ADMIN_VLAN → VM_IP:9090   # Prometheus
+ALLOW TCP ADMIN_VLAN → VM_IP:3100   # Loki</pre>
+
+      <h3>Sortant (Outbound) — Services cloud</h3>
+      <div class="acl-header">
+        <span>Domaines à autoriser depuis la VM</span>
+        <button class="copy-btn" onclick="copyAcl('acl-cloud')">Copier</button>
+      </div>
+      <pre id="acl-cloud" class="acl-block priority-critical"># SavQonnect - Règles SORTANTES CLOUD
+# VM → Internet (HTTPS 443)
+
+# Azure Entra ID - SSO UQAM (CRITIQUE)
+ALLOW TCP VM_IP → login.microsoftonline.com:443
+ALLOW TCP VM_IP → graph.microsoft.com:443
+
+# Podio (Bons de travail)
+ALLOW TCP VM_IP → api.podio.com:443
+
+# Solstice Cloud (Mersive)
+ALLOW TCP VM_IP → api.mersive.com:443
+ALLOW TCP VM_IP → *.mersive.com:443
+
+# Q-SYS Reflect
+ALLOW TCP VM_IP → reflect.qsc.com:443
+
+# LibCal (réservations)
+ALLOW TCP VM_IP → uqam-ca.libcal.com:443
+
+# Meraki Dashboard
+ALLOW TCP VM_IP → api.meraki.com:443
+
+# Sennheiser Cockpit (interne UQAM)
+ALLOW TCP VM_IP → cockpit.uqam.ca:443
+
+# DeepFreeze Cloud
+ALLOW TCP VM_IP → *.faronics.com:443
+
+# PostgreSQL cloud (optionnel)
+ALLOW TCP VM_IP → *.neon.tech:5432
+
+# Qdrant Cloud (RAG - optionnel)
+ALLOW TCP VM_IP → *.qdrant.io:6334</pre>
+
+      <h3>Sortant — Équipements AV (VLAN audiovisuel)</h3>
+      <div class="acl-header">
+        <span>Ports vers VLAN équipements</span>
+        <button class="copy-btn" onclick="copyAcl('acl-av')">Copier</button>
+      </div>
+      <pre id="acl-av" class="acl-block priority-high"># SavQonnect - Règles SORTANTES VLAN AV
+# VM → VLAN_AV (équipements audiovisuels)
+
+ALLOW TCP VM_IP → VLAN_AV:4352   # PJLink (projecteurs)
+ALLOW TCP VM_IP → VLAN_AV:3629   # ESC/VP.net (Epson)
+ALLOW TCP VM_IP → VLAN_AV:45     # Sennheiser SSCv1
+ALLOW TCP VM_IP → VLAN_AV:443    # Sennheiser SSCv2, Mersive, DDM, VIA
+ALLOW TCP VM_IP → VLAN_AV:5443   # Mersive OpenControl v2 (prioritaire)
+ALLOW TCP VM_IP → VLAN_AV:1710   # Q-SYS QRC
+ALLOW TCP VM_IP → VLAN_AV:22     # Crestron SSH
+ALLOW TCP VM_IP → VLAN_AV:41795  # Crestron CTP (Toolbox)
+ALLOW TCP VM_IP → VLAN_AV:80     # HTTP (Mersive, Epson, VIA)
+ALLOW UDP VM_IP → VLAN_AV:9      # Wake-on-Lan (DeepFreeze)
+ALLOW UDP VM_IP → VLAN_AV:161    # SNMP (discovery)
+ALLOW TCP VM_IP → VLAN_AV:23     # Telnet (Sennheiser legacy)</pre>
+
+      <h3>Sortant — Infrastructure interne UQAM</h3>
+      <div class="acl-header">
+        <span>Connexions vers serveurs internes</span>
+        <button class="copy-btn" onclick="copyAcl('acl-infra')">Copier</button>
+      </div>
+      <pre id="acl-infra" class="acl-block priority-normal"># SavQonnect - Infra interne UQAM
+# VM → Serveurs Mac Mini / Oracle
+
+ALLOW TCP VM_IP → 10.206.173.56:6379   # Redis
+ALLOW TCP VM_IP → 10.206.173.56:5432   # PostgreSQL
+ALLOW TCP VM_IP → 10.206.173.56:9090   # Prometheus
+ALLOW TCP VM_IP → 10.206.173.56:3100   # Loki
+ALLOW TCP VM_IP → 10.206.173.56:11434  # Ollama LLM
+
+ALLOW TCP VM_IP → omnip.uqam.ca:1521   # SRS Oracle
+ALLOW TCP VM_IP → ddm.ddns.uqam.ca:443 # DDM Dante (ou :80)</pre>
+    </section>
+
+    <section id="inbound">
+      <h2>Ports entrants (Inbound)</h2>
+      <table>
+        <thead>
+          <tr><th>Port</th><th>Proto</th><th>Service</th><th>Priorité</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="port">7070</td><td>TCP</td><td>API Backend (Production)</td><td><span class="badge badge-critical">Critique</span></td></tr>
+          <tr><td class="port">7071</td><td>TCP</td><td>API Backend (Staging)</td><td>Important</td></tr>
+          <tr><td class="port">7072</td><td>TCP</td><td>API Backend (Dev)</td><td>Dev</td></tr>
+          <tr><td class="port">80</td><td>TCP</td><td>HTTP (redirect)</td><td>Important</td></tr>
+          <tr><td class="port">443</td><td>TCP</td><td>HTTPS (prod)</td><td><span class="badge badge-critical">Critique</span></td></tr>
+          <tr><td class="port">3000</td><td>TCP</td><td>Grafana</td><td>Admins</td></tr>
+          <tr><td class="port">9090</td><td>TCP</td><td>Prometheus</td><td>Admins</td></tr>
+          <tr><td class="port">3100</td><td>TCP</td><td>Loki</td><td>Admins</td></tr>
+          <tr><td class="port">11434</td><td>TCP</td><td>Ollama LLM</td><td>Interne</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="outbound">
+      <h2>Ports sortants — Équipements AV</h2>
+      <table>
+        <thead>
+          <tr><th>Port</th><th>Proto</th><th>Équipement</th><th>Usage</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="port">4352</td><td>TCP</td><td>PJLink</td><td>Projecteurs</td></tr>
+          <tr><td class="port">3629</td><td>TCP</td><td>ESC/VP.net</td><td>Epson</td></tr>
+          <tr><td class="port">45</td><td>TCP/UDP</td><td>Sennheiser SSCv1</td><td>Microphones plafond</td></tr>
+          <tr><td class="port">23</td><td>TCP</td><td>Telnet</td><td>Sennheiser legacy</td></tr>
+          <tr><td class="port">443</td><td>HTTPS</td><td>Sennheiser SSCv2, Mersive, DDM, VIA</td><td>REST/GraphQL</td></tr>
+          <tr><td class="port">5443</td><td>HTTPS</td><td>Mersive OpenControl v2</td><td>OAuth2, prioritaire</td></tr>
+          <tr><td class="port">80</td><td>TCP</td><td>HTTP</td><td>Mersive, VIA, Epson</td></tr>
+          <tr><td class="port">1710</td><td>TCP</td><td>Q-SYS QRC</td><td>DSP audio</td></tr>
+          <tr><td class="port">22</td><td>TCP</td><td>SSH</td><td>Crestron</td></tr>
+          <tr><td class="port">41795</td><td>TCP</td><td>Crestron CTP</td><td>Toolbox</td></tr>
+          <tr><td class="port">161</td><td>UDP</td><td>SNMP</td><td>Discovery</td></tr>
+          <tr><td class="port">9</td><td>UDP</td><td>Wake-on-Lan</td><td>DeepFreeze</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="cloud">
+      <h2>Services cloud (HTTPS 443)</h2>
+      <table>
+        <thead>
+          <tr><th>Domaine</th><th>Service</th><th>Priorité</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>login.microsoftonline.com</td><td>Azure Entra ID (SSO)</td><td><span class="badge badge-critical">Critique</span></td></tr>
+          <tr><td>graph.microsoft.com</td><td>Azure Graph API</td><td><span class="badge badge-critical">Critique</span></td></tr>
+          <tr><td>api.podio.com</td><td>Bons de travail</td><td>Important</td></tr>
+          <tr><td>api.mersive.com</td><td>Solstice Cloud</td><td>Important</td></tr>
+          <tr><td>reflect.qsc.com</td><td>Q-SYS Reflect</td><td>Important</td></tr>
+          <tr><td>uqam-ca.libcal.com</td><td>LibCal (réservations)</td><td>Important</td></tr>
+          <tr><td>api.meraki.com</td><td>Cisco Meraki Dashboard</td><td>Important</td></tr>
+          <tr><td>cockpit.uqam.ca</td><td>Sennheiser SpeechLine Cockpit</td><td>Important</td></tr>
+          <tr><td>*.faronics.com</td><td>DeepFreeze Cloud</td><td>Important</td></tr>
+          <tr><td>*.neon.tech</td><td>PostgreSQL cloud</td><td>Optionnel</td></tr>
+          <tr><td>*.qdrant.io</td><td>Qdrant Cloud (RAG)</td><td>Optionnel</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="infra">
+      <h2>Infrastructure interne UQAM</h2>
+      <table>
+        <thead>
+          <tr><th>Host</th><th>Port</th><th>Usage</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>10.206.173.56</td><td class="port">6379</td><td>Redis</td></tr>
+          <tr><td>10.206.173.56</td><td class="port">5432</td><td>PostgreSQL</td></tr>
+          <tr><td>10.206.173.56</td><td class="port">9090</td><td>Prometheus</td></tr>
+          <tr><td>10.206.173.56</td><td class="port">3100</td><td>Loki</td></tr>
+          <tr><td>10.206.173.56</td><td class="port">11434</td><td>Ollama LLM</td></tr>
+          <tr><td>omnip.uqam.ca</td><td class="port">1521</td><td>SRS Oracle</td></tr>
+          <tr><td>ddm.ddns.uqam.ca</td><td class="port">80/443</td><td>DDM Dante</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Références officielles</h2>
+      <ul style="list-style:none">
+        <li style="margin-bottom:0.5rem">• <a href="https://documentation.mersive.com/en/opencontrol-api.html" target="_blank" rel="noopener" style="color:var(--accent)">Mersive OpenControl API v2 (port 5443)</a></li>
+        <li style="margin-bottom:0.5rem">• <a href="https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=41795" target="_blank" rel="noopener" style="color:var(--accent)">IANA port 41795 (Crestron CTP)</a></li>
+        <li style="margin-bottom:0.5rem">• <a href="https://qdrant.tech/documentation/cloud/cluster-access/" target="_blank" rel="noopener" style="color:var(--accent)">Qdrant Cloud</a></li>
+      </ul>
+    </section>
+
+    <footer>
+      Document généré le 2026-03-17 | SavQonnect V6.1-BETA | © Zineddine Chergui — UQAM Service Audiovisuel. Source : docs/AUDIT_PORTS_RELATIONS_SAVQONNECT.md
+    </footer>
+  </div>
+
+  <script>
+    function copyAcl(id) {
+      const el = document.getElementById(id);
+      const btn = el.previousElementSibling?.querySelector('.copy-btn');
+      navigator.clipboard.writeText(el.textContent).then(() => {
+        if (btn) {
+          btn.textContent = 'Copié ✓';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+        }
+      });
+    }
+    document.querySelectorAll('nav.tabs a').forEach(a => {
+      a.addEventListener('click', e => {
+        document.querySelectorAll('nav.tabs a').forEach(x => x.classList.remove('active'));
+        a.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
